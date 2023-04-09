@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
 using Soenneker.Cosmos.Container.Setup.Abstract;
-using Soenneker.Cosmos.Database.Setup.Abstract;
+using Soenneker.Cosmos.Database.Abstract;
 using Soenneker.Utils.Random;
 
 namespace Soenneker.Cosmos.Container.Setup;
@@ -14,18 +14,27 @@ namespace Soenneker.Cosmos.Container.Setup;
 ///<inheritdoc cref="ICosmosContainerSetupUtil"/>
 public class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
 {
-    private readonly ICosmosDatabaseSetupUtil _cosmosDatabaseSetupUtil;
     private readonly ILogger<CosmosContainerSetupUtil> _logger;
+    private readonly ICosmosDatabaseUtil _cosmosDatabaseUtil;
 
-    public CosmosContainerSetupUtil(ICosmosDatabaseSetupUtil cosmosDatabaseSetupUtil, ILogger<CosmosContainerSetupUtil> logger)
+    public CosmosContainerSetupUtil(ILogger<CosmosContainerSetupUtil> logger, ICosmosDatabaseUtil cosmosDatabaseUtil)
     {
-        _cosmosDatabaseSetupUtil = cosmosDatabaseSetupUtil;
         _logger = logger;
+        _cosmosDatabaseUtil = cosmosDatabaseUtil;
     }
 
     public async ValueTask<ContainerResponse?> EnsureContainer(string name)
     {
-        Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseSetupUtil.EnsureDatabase();
+        Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.GetDatabase();
+
+        ContainerResponse? result = await EnsureContainer(database, name);
+
+        return result;
+    }
+
+    public async ValueTask<ContainerResponse?> EnsureContainer(string name, string databaseName)
+    {
+        Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.GetDatabase(databaseName);
 
         ContainerResponse? result = await EnsureContainer(database, name);
 

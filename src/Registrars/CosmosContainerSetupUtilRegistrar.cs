@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Soenneker.Cosmos.Container.Setup.Abstract;
-using Soenneker.Cosmos.Database.Setup.Registrars;
+using Soenneker.Cosmos.Database.Registrars;
 
 namespace Soenneker.Cosmos.Container.Setup.Registrars;
 
@@ -15,7 +15,7 @@ public static class CosmosContainerSetupUtilRegistrar
     /// </summary>
     public static void AddCosmosContainerSetupUtil(this IServiceCollection services)
     {
-        services.AddCosmosDatabaseSetupUtil();
+        services.AddCosmosDatabaseUtil();
         services.TryAddSingleton<ICosmosContainerSetupUtil, CosmosContainerSetupUtil>();
     }
 }
