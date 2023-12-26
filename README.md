@@ -8,5 +8,5 @@
 ## Installation
 
 ```
-Install-Package Soenneker.Cosmos.Container.Setup
+dotnet add package Soenneker.Cosmos.Container.Setup
 ```
