@@ -7,6 +7,8 @@ using Polly;
 using Polly.Retry;
 using Soenneker.Cosmos.Container.Setup.Abstract;
 using Soenneker.Cosmos.Database.Abstract;
+using Soenneker.Extensions.Task;
+using Soenneker.Extensions.ValueTask;
 using Soenneker.Utils.Random;
 
 namespace Soenneker.Cosmos.Container.Setup;
@@ -23,25 +25,25 @@ public class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
         _cosmosDatabaseUtil = cosmosDatabaseUtil;
     }
 
-    public async ValueTask<ContainerResponse?> EnsureContainer(string name)
+    public async ValueTask<ContainerResponse?> Ensure(string name)
     {
-        Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.GetDatabase();
+        Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.Get().NoSync();
 
-        ContainerResponse? result = await EnsureContainer(database, name);
+        ContainerResponse? result = await Ensure(database, name).NoSync();
 
         return result;
     }
 
-    public async ValueTask<ContainerResponse?> EnsureContainer(string name, string databaseName)
+    public async ValueTask<ContainerResponse?> Ensure(string name, string databaseName)
     {
-        Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.GetDatabase(databaseName);
+        Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.Get(databaseName).NoSync();
 
-        ContainerResponse? result = await EnsureContainer(database, name);
+        ContainerResponse? result = await Ensure(database, name).NoSync();
 
         return result;
     }
 
-    public async ValueTask<ContainerResponse?> EnsureContainer(Microsoft.Azure.Cosmos.Database database, string containerName)
+    public async ValueTask<ContainerResponse?> Ensure(Microsoft.Azure.Cosmos.Database database, string containerName)
     {
         // These partition key paths need to match the serialized object property -exactly- (case sensitive)
         // We're going to keep these all as /partitionKey, and then identity what that value means within the C# document
@@ -62,7 +64,7 @@ public class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
                                                       + TimeSpan.FromMilliseconds(RandomUtil.Next(0, 1000)),
                     async (exception, timespan, retryCount) =>
                     {
-                        _logger.LogError(exception, "*** CosmosSetupUtil *** Failed to EnsureContainer, trying again in {delay}s ... count: {retryCount}", timespan.Seconds, retryCount);
+                        _logger.LogError(exception, "*** CosmosSetupUtil *** Failed to ensure container, trying again in {delay}s ... count: {retryCount}", timespan.Seconds, retryCount);
                         await ValueTask.CompletedTask;
                     });
 
@@ -70,10 +72,10 @@ public class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
             {
                 ThroughputProperties? containerThroughput = GetContainerThroughput(containerName);
 
-                containerResponse = await containerBuilder.CreateIfNotExistsAsync(containerThroughput);
+                containerResponse = await containerBuilder.CreateIfNotExistsAsync(containerThroughput).NoSync();
 
                 _logger.LogDebug("Ensured container ({container})", containerName);
-            });
+            }).NoSync();
         }
         catch (Exception e)
         {

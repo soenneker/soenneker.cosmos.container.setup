@@ -8,9 +8,9 @@ namespace Soenneker.Cosmos.Container.Setup.Abstract;
 /// </summary>
 public interface ICosmosContainerSetupUtil
 {
-    ValueTask<ContainerResponse?> EnsureContainer(string name);
+    ValueTask<ContainerResponse?> Ensure(string name);
 
-    ValueTask<ContainerResponse?> EnsureContainer(string name, string databaseName);
+    ValueTask<ContainerResponse?> Ensure(string name, string databaseName);
 
-    ValueTask<ContainerResponse?> EnsureContainer(Microsoft.Azure.Cosmos.Database database, string containerName);
+    ValueTask<ContainerResponse?> Ensure(Microsoft.Azure.Cosmos.Database database, string containerName);
 }
