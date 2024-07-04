@@ -49,7 +49,7 @@ public class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
         // These partition key paths need to match the serialized object property -exactly- (case sensitive)
         // We're going to keep these all as /partitionKey, and then identity what that value means within the C# document
 
-        _logger.LogDebug("Ensuring Cosmos container ({container}) exists. If not, creating...", containerName);
+        _logger.LogDebug("Ensuring Cosmos container ({containerName}) exists. If not, creating...", containerName);
 
         var containerBuilder = new ContainerBuilder(database, containerName, "/partitionKey");
 
@@ -65,7 +65,7 @@ public class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
                                                       + TimeSpan.FromMilliseconds(RandomUtil.Next(0, 1000)),
                     async (exception, timespan, retryCount) =>
                     {
-                        _logger.LogError(exception, "*** CosmosSetupUtil *** Failed to ensure container, trying again in {delay}s ... count: {retryCount}", timespan.Seconds, retryCount);
+                        _logger.LogError(exception, "*** CosmosContainerSetupUtil *** Failed to ensure container ({containerName}), trying again in {delay}s ... count: {retryCount}", containerName, timespan.Seconds, retryCount);
                         await ValueTask.CompletedTask;
                     });
 
@@ -80,7 +80,7 @@ public class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "*** CosmosSetupUtil *** Stopped retrying to create container ({container}), continuing...", containerName);
+            _logger.LogError(e, "*** CosmosContainerSetupUtil *** Stopped retrying to create container ({containerName}), continuing...", containerName);
         }
 
         return containerResponse;
@@ -92,7 +92,7 @@ public class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
 
         ThroughputProperties? properties = null;
 
-        _logger.LogDebug("Using AutoScale throughput for container ({containerName})", containerName);
+        _logger.LogDebug("Using AutoScale throughput for Cosmos container ({containerName})", containerName);
 
         return properties;
     }
