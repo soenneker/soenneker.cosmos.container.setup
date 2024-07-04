@@ -28,7 +28,7 @@ public class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
 
     public async ValueTask<ContainerResponse?> Ensure(string name, CancellationToken cancellationToken = default)
     {
-        Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.Get().NoSync();
+        Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.Get(cancellationToken).NoSync();
 
         ContainerResponse? result = await Ensure(database, name, cancellationToken).NoSync();
 
@@ -37,7 +37,7 @@ public class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
 
     public async ValueTask<ContainerResponse?> Ensure(string name, string databaseName, CancellationToken cancellationToken = default)
     {
-        Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.Get(databaseName).NoSync();
+        Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.Get(databaseName, cancellationToken).NoSync();
 
         ContainerResponse? result = await Ensure(database, name, cancellationToken).NoSync();
 
