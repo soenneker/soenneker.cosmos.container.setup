@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
@@ -25,25 +26,25 @@ public class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
         _cosmosDatabaseUtil = cosmosDatabaseUtil;
     }
 
-    public async ValueTask<ContainerResponse?> Ensure(string name)
+    public async ValueTask<ContainerResponse?> Ensure(string name, CancellationToken cancellationToken = default)
     {
         Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.Get().NoSync();
 
-        ContainerResponse? result = await Ensure(database, name).NoSync();
+        ContainerResponse? result = await Ensure(database, name, cancellationToken).NoSync();
 
         return result;
     }
 
-    public async ValueTask<ContainerResponse?> Ensure(string name, string databaseName)
+    public async ValueTask<ContainerResponse?> Ensure(string name, string databaseName, CancellationToken cancellationToken = default)
     {
         Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.Get(databaseName).NoSync();
 
-        ContainerResponse? result = await Ensure(database, name).NoSync();
+        ContainerResponse? result = await Ensure(database, name, cancellationToken).NoSync();
 
         return result;
     }
 
-    public async ValueTask<ContainerResponse?> Ensure(Microsoft.Azure.Cosmos.Database database, string containerName)
+    public async ValueTask<ContainerResponse?> Ensure(Microsoft.Azure.Cosmos.Database database, string containerName, CancellationToken cancellationToken = default)
     {
         // These partition key paths need to match the serialized object property -exactly- (case sensitive)
         // We're going to keep these all as /partitionKey, and then identity what that value means within the C# document
@@ -72,7 +73,7 @@ public class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
             {
                 ThroughputProperties? containerThroughput = GetContainerThroughput(containerName);
 
-                containerResponse = await containerBuilder.CreateIfNotExistsAsync(containerThroughput).NoSync();
+                containerResponse = await containerBuilder.CreateIfNotExistsAsync(containerThroughput, cancellationToken).NoSync();
 
                 _logger.LogDebug("Ensured container ({container})", containerName);
             }).NoSync();
