@@ -30,18 +30,14 @@ public class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
     {
         Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.Get(cancellationToken).NoSync();
 
-        ContainerResponse? result = await Ensure(database, name, cancellationToken).NoSync();
-
-        return result;
+        return await Ensure(database, name, cancellationToken).NoSync();
     }
 
     public async ValueTask<ContainerResponse?> Ensure(string name, string databaseName, CancellationToken cancellationToken = default)
     {
         Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.Get(databaseName, cancellationToken).NoSync();
 
-        ContainerResponse? result = await Ensure(database, name, cancellationToken).NoSync();
-
-        return result;
+        return await Ensure(database, name, cancellationToken).NoSync();
     }
 
     public async ValueTask<ContainerResponse?> Ensure(Microsoft.Azure.Cosmos.Database database, string containerName, CancellationToken cancellationToken = default)
@@ -92,7 +88,7 @@ public class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
 
         ThroughputProperties? properties = null;
 
-        _logger.LogDebug("Using AutoScale throughput for Cosmos container ({containerName})", containerName);
+        _logger.LogDebug("Using no throughput settings for Cosmos container ({containerName})", containerName);
 
         return properties;
     }

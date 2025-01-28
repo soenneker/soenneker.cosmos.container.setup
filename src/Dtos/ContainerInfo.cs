@@ -19,7 +19,7 @@ public class ContainerInfo
 
     public ContainerInfo(string name, string partitionKeyPath)
     {
-        CompositeIndexes = new Collection<Collection<CompositePath>>();
+        CompositeIndexes = [];
         Name = name;
         PartitionKeyPath = partitionKeyPath;
     }
