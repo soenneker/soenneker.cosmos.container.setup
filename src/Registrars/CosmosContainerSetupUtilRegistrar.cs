@@ -12,8 +12,14 @@ public static class CosmosContainerSetupUtilRegistrar
 {
     public static IServiceCollection AddCosmosContainerSetupUtilAsSingleton(this IServiceCollection services)
     {
-        services.AddCosmosDatabaseUtilAsSingleton();
-        services.TryAddSingleton<ICosmosContainerSetupUtil, CosmosContainerSetupUtil>();
+        services.AddCosmosDatabaseUtilAsSingleton().TryAddSingleton<ICosmosContainerSetupUtil, CosmosContainerSetupUtil>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddCosmosContainerSetupUtilAsScoped(this IServiceCollection services)
+    {
+        services.AddCosmosDatabaseUtilAsSingleton().TryAddScoped<ICosmosContainerSetupUtil, CosmosContainerSetupUtil>();
 
         return services;
     }
