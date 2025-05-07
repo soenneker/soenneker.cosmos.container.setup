@@ -40,7 +40,8 @@ public class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
         return await Ensure(database, name, cancellationToken).NoSync();
     }
 
-    public async ValueTask<ContainerResponse?> Ensure(Microsoft.Azure.Cosmos.Database database, string containerName, CancellationToken cancellationToken = default)
+    public async ValueTask<ContainerResponse?> Ensure(Microsoft.Azure.Cosmos.Database database, string containerName,
+        CancellationToken cancellationToken = default)
     {
         // These partition key paths need to match the serialized object property -exactly- (case sensitive)
         // We're going to keep these all as /partitionKey, and then identity what that value means within the C# document
@@ -55,24 +56,26 @@ public class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
 
         try
         {
-            AsyncRetryPolicy? retryPolicy = Policy
-                .Handle<Exception>()
-                .WaitAndRetryAsync(5, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) // exponential back-off: 2, 4, 8 etc, with jitter
-                                                      + TimeSpan.FromMilliseconds(RandomUtil.Next(0, 1000)),
-                    async (exception, timespan, retryCount) =>
-                    {
-                        _logger.LogError(exception, "*** CosmosContainerSetupUtil *** Failed to ensure container ({containerName}), trying again in {delay}s ... count: {retryCount}", containerName, timespan.Seconds, retryCount);
-                        await ValueTask.CompletedTask;
-                    });
+            AsyncRetryPolicy? retryPolicy = Policy.Handle<Exception>(ex => ex is not OperationCanceledException)
+                                                  .WaitAndRetryAsync(5, retryAttempt =>
+                                                      TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) // exponential back-off: 2, 4, 8 etc, with jitter
+                                                      + TimeSpan.FromMilliseconds(RandomUtil.Next(0, 1000)), async (exception, timespan, retryCount) =>
+                                                  {
+                                                      _logger.LogError(exception,
+                                                          "*** CosmosContainerSetupUtil *** Failed to ensure container ({containerName}), trying again in {delay}s ... count: {retryCount}",
+                                                          containerName, timespan.Seconds, retryCount);
+                                                      await ValueTask.CompletedTask;
+                                                  });
 
             await retryPolicy.ExecuteAsync(async () =>
-            {
-                ThroughputProperties? containerThroughput = GetContainerThroughput(containerName);
+                             {
+                                 ThroughputProperties? containerThroughput = GetContainerThroughput(containerName);
 
-                containerResponse = await containerBuilder.CreateIfNotExistsAsync(containerThroughput, cancellationToken).NoSync();
+                                 containerResponse = await containerBuilder.CreateIfNotExistsAsync(containerThroughput, cancellationToken).NoSync();
 
-                _logger.LogDebug("Ensured container ({container})", containerName);
-            }).NoSync();
+                                 _logger.LogDebug("Ensured container ({container})", containerName);
+                             })
+                             .NoSync();
         }
         catch (Exception e)
         {
