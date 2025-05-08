@@ -71,7 +71,7 @@ public class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
                              {
                                  ThroughputProperties? containerThroughput = GetContainerThroughput(containerName);
 
-                                 containerResponse = await containerBuilder.CreateIfNotExistsAsync(containerThroughput, cancellationToken).NoSync();
+                                 containerResponse = await containerBuilder.CreateIfNotExistsAsync(containerThroughput, CancellationToken.None).NoSync();
 
                                  _logger.LogDebug("Ensured container ({container})", containerName);
                              })
