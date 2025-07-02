@@ -3,7 +3,7 @@ using Microsoft.Azure.Cosmos;
 
 namespace Soenneker.Cosmos.Container.Setup.Dtos;
 
-public class ContainerInfo
+public sealed class ContainerInfo
 {
     /// <summary>
     /// Container Name
