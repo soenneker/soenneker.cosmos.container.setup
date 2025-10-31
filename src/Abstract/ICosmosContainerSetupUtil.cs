@@ -11,7 +11,7 @@ public interface ICosmosContainerSetupUtil
 {
     ValueTask<ContainerResponse?> Ensure(string containerName, CancellationToken cancellationToken = default);
 
-    ValueTask<ContainerResponse?> Ensure(string databaseName, string containerName, CancellationToken cancellationToken = default);
+    ValueTask<ContainerResponse?> Ensure(string endpoint, string accountKey, string databaseName, string containerName, CancellationToken cancellationToken = default);
 
     ValueTask<ContainerResponse?> Ensure(Microsoft.Azure.Cosmos.Database database, string containerName, CancellationToken cancellationToken = default);
 }

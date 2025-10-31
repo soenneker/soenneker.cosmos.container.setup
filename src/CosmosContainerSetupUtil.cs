@@ -33,9 +33,9 @@ public sealed class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
         return await Ensure(database, containerName, cancellationToken).NoSync();
     }
 
-    public async ValueTask<ContainerResponse?> Ensure(string databaseName, string containerName, CancellationToken cancellationToken = default)
+    public async ValueTask<ContainerResponse?> Ensure(string endpoint, string accountKey, string databaseName, string containerName, CancellationToken cancellationToken = default)
     {
-        Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.Get(databaseName, cancellationToken).NoSync();
+        Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.Get(endpoint, accountKey, databaseName, cancellationToken).NoSync();
 
         return await Ensure(database, containerName, cancellationToken).NoSync();
     }
