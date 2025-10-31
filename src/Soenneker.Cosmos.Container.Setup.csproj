@@ -36,6 +36,6 @@
         <None Include="..\README.md" Pack="true" PackagePath="\" />
         <None Include="..\LICENSE" Pack="true" PackagePath="\" />
         <None Include="..\icon.png" Pack="true" PackagePath="\" />
-        <PackageReference Include="Soenneker.Cosmos.Database" Version="4.0.2378" />
+        <PackageReference Include="Soenneker.Cosmos.Database" Version="4.0.2379" />
     </ItemGroup>
 </Project>
