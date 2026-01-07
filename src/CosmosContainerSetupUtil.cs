@@ -28,16 +28,21 @@ public sealed class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
 
     public async ValueTask<ContainerResponse?> Ensure(string containerName, CancellationToken cancellationToken = default)
     {
-        Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.Get(cancellationToken).NoSync();
+        Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.Get(cancellationToken)
+                                                                            .NoSync();
 
-        return await Ensure(database, containerName, cancellationToken).NoSync();
+        return await Ensure(database, containerName, cancellationToken)
+            .NoSync();
     }
 
-    public async ValueTask<ContainerResponse?> Ensure(string endpoint, string accountKey, string databaseName, string containerName, CancellationToken cancellationToken = default)
+    public async ValueTask<ContainerResponse?> Ensure(string endpoint, string accountKey, string databaseName, string containerName,
+        CancellationToken cancellationToken = default)
     {
-        Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.Get(endpoint, accountKey, databaseName, cancellationToken).NoSync();
+        Microsoft.Azure.Cosmos.Database database = await _cosmosDatabaseUtil.Get(endpoint, accountKey, databaseName, cancellationToken)
+                                                                            .NoSync();
 
-        return await Ensure(database, containerName, cancellationToken).NoSync();
+        return await Ensure(database, containerName, cancellationToken)
+            .NoSync();
     }
 
     public async ValueTask<ContainerResponse?> Ensure(Microsoft.Azure.Cosmos.Database database, string containerName,
@@ -56,25 +61,29 @@ public sealed class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
 
         try
         {
-            AsyncRetryPolicy? retryPolicy = Policy.Handle<Exception>(ex => ex is not OperationCanceledException).WaitAndRetryAsync(5, retryAttempt =>
-                TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) // exponential back-off: 2, 4, 8 etc, with jitter
-                + TimeSpan.FromMilliseconds(RandomUtil.Next(0, 1000)), async (exception, timespan, retryCount) =>
-            {
-                _logger.LogError(exception,
-                    "*** CosmosContainerSetupUtil *** Failed to ensure container ({containerName}), trying again in {delay}s ... count: {retryCount}",
-                    containerName, timespan.Seconds, retryCount);
+            AsyncRetryPolicy? retryPolicy = Policy.Handle<Exception>(ex => ex is not OperationCanceledException)
+                                                  .WaitAndRetryAsync(5,
+                                                      retryAttempt =>
+                                                          TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) // exponential back-off: 2, 4, 8 etc, with jitter
+                                                          + TimeSpan.FromMilliseconds(RandomUtil.Next(0, 1000)), async (exception, timespan, retryCount) =>
+                                                      {
+                                                          _logger.LogError(exception,
+                                                              "*** CosmosContainerSetupUtil *** Failed to ensure container ({containerName}), trying again in {delay}s ... count: {retryCount}",
+                                                              containerName, timespan.Seconds, retryCount);
 
-                await ValueTask.CompletedTask.NoSync();
-            });
+                                                          await ValueTask.CompletedTask.NoSync();
+                                                      });
 
             await retryPolicy.ExecuteAsync(async () =>
-            {
-                ThroughputProperties? containerThroughput = GetContainerThroughput(containerName);
+                             {
+                                 ThroughputProperties? containerThroughput = GetContainerThroughput(containerName);
 
-                containerResponse = await containerBuilder.CreateIfNotExistsAsync(containerThroughput, CancellationToken.None).NoSync();
+                                 containerResponse = await containerBuilder.CreateIfNotExistsAsync(containerThroughput, CancellationToken.None)
+                                                                           .NoSync();
 
-                _logger.LogDebug("Ensured container ({container})", containerName);
-            }).NoSync();
+                                 _logger.LogDebug("Ensured container ({container})", containerName);
+                             })
+                             .NoSync();
         }
         catch (Exception e)
         {
