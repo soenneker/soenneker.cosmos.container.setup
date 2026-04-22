@@ -1,21 +1,19 @@
 using Soenneker.Cosmos.Container.Setup.Abstract;
-using Soenneker.Tests.FixturedUnit;
-using Xunit;
-
+using Soenneker.Tests.HostedUnit;
 
 namespace Soenneker.Cosmos.Container.Setup.Tests;
 
-[Collection("Collection")]
-public class CosmosContainerSetupUtilTests : FixturedUnitTest
+[ClassDataSource<Host>(Shared = SharedType.PerTestSession)]
+public class CosmosContainerSetupUtilTests : HostedUnitTest
 {
     private readonly ICosmosContainerSetupUtil _util;
 
-    public CosmosContainerSetupUtilTests(Fixture fixture, ITestOutputHelper output) : base(fixture, output)
+    public CosmosContainerSetupUtilTests(Host host) : base(host)
     {
         _util = Resolve<ICosmosContainerSetupUtil>(true);
     }
 
-    [Fact]
+    [Test]
     public void Default()
     {
 
