@@ -3,6 +3,9 @@ using Microsoft.Azure.Cosmos;
 
 namespace Soenneker.Cosmos.Container.Setup.Dtos;
 
+/// <summary>
+/// Represents the container info.
+/// </summary>
 public sealed class ContainerInfo
 {
     /// <summary>
@@ -15,6 +18,9 @@ public sealed class ContainerInfo
     /// </summary>
     public string PartitionKeyPath { get; }
 
+    /// <summary>
+    /// Gets or sets composite indexes.
+    /// </summary>
     public Collection<Collection<CompositePath>> CompositeIndexes { get; set; }
 
     public ContainerInfo(string name, string partitionKeyPath)
