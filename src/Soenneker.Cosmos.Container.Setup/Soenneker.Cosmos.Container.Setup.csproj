@@ -42,6 +42,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Soenneker.Cosmos.Database" Version="4.0.2602" />
+        <PackageReference Include="Soenneker.Cosmos.Database" Version="4.0.2603" />
     </ItemGroup>
 </Project>
