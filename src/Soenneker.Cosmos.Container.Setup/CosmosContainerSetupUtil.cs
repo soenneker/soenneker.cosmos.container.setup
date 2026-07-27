@@ -19,11 +19,23 @@ public sealed class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
 {
     private readonly ILogger<CosmosContainerSetupUtil> _logger;
     private readonly ICosmosDatabaseUtil _cosmosDatabaseUtil;
+    private readonly AsyncRetryPolicy _retryPolicy;
 
     public CosmosContainerSetupUtil(ILogger<CosmosContainerSetupUtil> logger, ICosmosDatabaseUtil cosmosDatabaseUtil)
     {
         _logger = logger;
         _cosmosDatabaseUtil = cosmosDatabaseUtil;
+        _retryPolicy = Policy.Handle<Exception>(static ex => ex is not OperationCanceledException)
+                             .WaitAndRetryAsync(5,
+                                 static retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))
+                                     + TimeSpan.FromMilliseconds(RandomUtil.Next(0, 1000)),
+                                 (exception, timespan, retryCount, context) =>
+                                 {
+                                     _logger.LogError(exception,
+                                         "*** CosmosContainerSetupUtil *** Failed to ensure container ({containerName}), trying again in {delay}s ... count: {retryCount}",
+                                         context["containerName"], timespan.TotalSeconds, retryCount);
+                                     return Task.CompletedTask;
+                                 });
     }
 
     public async ValueTask<ContainerResponse?> Ensure(string containerName, CancellationToken cancellationToken = default)
@@ -61,20 +73,8 @@ public sealed class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
 
         try
         {
-            AsyncRetryPolicy? retryPolicy = Policy.Handle<Exception>(ex => ex is not OperationCanceledException)
-                                                  .WaitAndRetryAsync(5,
-                                                      retryAttempt =>
-                                                          TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) // exponential back-off: 2, 4, 8 etc, with jitter
-                                                          + TimeSpan.FromMilliseconds(RandomUtil.Next(0, 1000)), async (exception, timespan, retryCount) =>
-                                                      {
-                                                          _logger.LogError(exception,
-                                                              "*** CosmosContainerSetupUtil *** Failed to ensure container ({containerName}), trying again in {delay}s ... count: {retryCount}",
-                                                              containerName, timespan.Seconds, retryCount);
-
-                                                          await ValueTask.CompletedTask.NoSync();
-                                                      });
-
-            await retryPolicy.ExecuteAsync(async () =>
+            var context = new Context {["containerName"] = containerName};
+            await _retryPolicy.ExecuteAsync(async _ =>
                              {
                                  ThroughputProperties? containerThroughput = GetContainerThroughput(containerName);
 
@@ -82,7 +82,7 @@ public sealed class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
                                                                            .NoSync();
 
                                  _logger.LogDebug("Ensured container ({container})", containerName);
-                             })
+                             }, context)
                              .NoSync();
         }
         catch (Exception e)
