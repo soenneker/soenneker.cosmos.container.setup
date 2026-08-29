@@ -10,30 +10,30 @@ namespace Soenneker.Cosmos.Container.Setup.Abstract;
 public interface ICosmosContainerSetupUtil
 {
     /// <summary>
-    /// Executes the ensure operation.
+    /// Ensures cosmos container setup for the cosmos container setup.
     /// </summary>
-    /// <param name="containerName">The container name.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task containing the result of the operation.</returns>
+    /// <param name="containerName">Name of the container to target.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>A task whose result is the requested container Response.</returns>
     ValueTask<ContainerResponse?> Ensure(string containerName, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Executes the ensure operation.
+    /// Ensures cosmos container setup for the cosmos container setup.
     /// </summary>
-    /// <param name="endpoint">The endpoint.</param>
-    /// <param name="accountKey">The account key.</param>
-    /// <param name="databaseName">The database name.</param>
-    /// <param name="containerName">The container name.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task containing the result of the operation.</returns>
+    /// <param name="endpoint">Service endpoint to call.</param>
+    /// <param name="accountKey">Account key used for authentication.</param>
+    /// <param name="databaseName">Name of the target database.</param>
+    /// <param name="containerName">Name of the container to target.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>A task whose result is the requested container Response.</returns>
     ValueTask<ContainerResponse?> Ensure(string endpoint, string accountKey, string databaseName, string containerName, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Executes the ensure operation.
+    /// Ensures cosmos Container Setup.
     /// </summary>
-    /// <param name="database">The database.</param>
-    /// <param name="containerName">The container name.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task containing the result of the operation.</returns>
+    /// <param name="database">Database for the ensure operation.</param>
+    /// <param name="containerName">Name of the container to target.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>A task whose result is the requested container Response.</returns>
     ValueTask<ContainerResponse?> Ensure(Microsoft.Azure.Cosmos.Database database, string containerName, CancellationToken cancellationToken = default);
 }
