@@ -14,7 +14,7 @@ using Soenneker.Utils.Random;
 
 namespace Soenneker.Cosmos.Container.Setup;
 
-///<inheritdoc cref="ICosmosContainerSetupUtil"/>
+/// <inheritdoc cref="ICosmosContainerSetupUtil"/>
 public sealed class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
 {
     private readonly ILogger<CosmosContainerSetupUtil> _logger;
