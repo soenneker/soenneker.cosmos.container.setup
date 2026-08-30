@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Net;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.Cosmos;
@@ -25,13 +27,17 @@ public sealed class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
     {
         _logger = logger;
         _cosmosDatabaseUtil = cosmosDatabaseUtil;
-        _retryPolicy = Policy.Handle<Exception>(static ex => ex is not OperationCanceledException)
+        _retryPolicy = Policy.Handle<CosmosException>(static exception =>
+                                 exception.StatusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests or
+                                     HttpStatusCode.InternalServerError or HttpStatusCode.ServiceUnavailable || (int)exception.StatusCode == 449)
+                             .Or<HttpRequestException>()
+                             .Or<TimeoutException>()
                              .WaitAndRetryAsync(5,
                                  static retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))
                                      + TimeSpan.FromMilliseconds(RandomUtil.Next(0, 1000)),
                                  (exception, timespan, retryCount, context) =>
                                  {
-                                     _logger.LogError(exception,
+                                     _logger.LogWarning(exception,
                                          "*** CosmosContainerSetupUtil *** Failed to ensure container ({containerName}), trying again in {delay}s ... count: {retryCount}",
                                          context["containerName"], timespan.TotalSeconds, retryCount);
                                      return Task.CompletedTask;
@@ -71,24 +77,17 @@ public sealed class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
 
         ContainerResponse? containerResponse = null;
 
-        try
-        {
-            var context = new Context {["containerName"] = containerName};
-            await _retryPolicy.ExecuteAsync(async _ =>
-                             {
-                                 ThroughputProperties? containerThroughput = GetContainerThroughput(containerName);
+        var context = new Context {["containerName"] = containerName};
+        await _retryPolicy.ExecuteAsync(async (_, token) =>
+                         {
+                             ThroughputProperties? containerThroughput = GetContainerThroughput(containerName);
 
-                                 containerResponse = await containerBuilder.CreateIfNotExistsAsync(containerThroughput, CancellationToken.None)
-                                                                           .NoSync();
+                             containerResponse = await containerBuilder.CreateIfNotExistsAsync(containerThroughput, token)
+                                                                       .NoSync();
 
-                                 _logger.LogDebug("Ensured container ({container})", containerName);
-                             }, context)
-                             .NoSync();
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "*** CosmosContainerSetupUtil *** Stopped retrying to create container ({containerName}), continuing...", containerName);
-        }
+                             _logger.LogDebug("Ensured container ({container})", containerName);
+                         }, context, cancellationToken)
+                         .NoSync();
 
         return containerResponse;
     }

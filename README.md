@@ -5,7 +5,7 @@
 
 # Soenneker.Cosmos.Container.Setup
 
-Singleton.
+Ensures an Azure Cosmos DB container exists with the package's standard partition key path.
 
 ## Install
 
@@ -13,36 +13,48 @@ Singleton.
 dotnet add package Soenneker.Cosmos.Container.Setup
 ```
 
-## Quick start
+## Registration
 
 ```csharp
 using Soenneker.Cosmos.Container.Setup.Registrars;
-using Microsoft.Extensions.DependencyInjection;
 
-var services = new ServiceCollection();
-var result = services.AddCosmosContainerSetupUtilAsSingleton();
+services.AddCosmosContainerSetupUtilAsSingleton();
 ```
 
-Registers Cosmos Container Setup Util with a singleton lifetime.
+Use `AddCosmosContainerSetupUtilAsScoped()` when the setup service should follow a dependency-injection scope. Its Cosmos database dependency remains a long-lived singleton.
 
-## What you get
+## Usage
 
-- `ICosmosContainerSetupUtil` — Singleton.
-- `CosmosContainerSetupUtilRegistrar` — A utility library for Azure Cosmos container setup operations.
-- `ContainerInfo` — Represents the container info.
+Use configured Cosmos credentials and the configured default database:
 
-## API at a glance
+```csharp
+using Microsoft.Azure.Cosmos;
+using Soenneker.Cosmos.Container.Setup.Abstract;
 
-| API | What it does | Result / important behavior |
-| --- | --- | --- |
-| `ICosmosContainerSetupUtil.Ensure(database, containerName, cancellationToken)` | Ensures cosmos Container Setup. | A task whose result is the requested container Response. |
-| `CosmosContainerSetupUtilRegistrar.AddCosmosContainerSetupUtilAsSingleton(services)` | Registers Cosmos Container Setup Util with a singleton lifetime. | The same service collection, so additional registrations can be chained. |
-| `CosmosContainerSetupUtilRegistrar.AddCosmosContainerSetupUtilAsScoped(services)` | Registers Cosmos Container Setup Util with a scoped lifetime. | The same service collection, so additional registrations can be chained. |
-| `ContainerInfo.Name` | Container Name. | Container Name. |
-| `ContainerInfo.PartitionKeyPath` | Container partition Key. | Container partition Key. |
-| `ContainerInfo.CompositeIndexes` | Gets or sets composite indexes. | Gets or sets composite indexes. |
+ContainerResponse? response = await setup.Ensure("orders", cancellationToken);
+```
 
-## Practical notes
+Or target an explicit account and database:
 
-- Cancellation stops pending work; it does not undo work that has already completed.
-- Calls that return a cached or singleton value reuse the same instance until the owning service is disposed.
+```csharp
+ContainerResponse? response = await setup.Ensure(
+    endpoint,
+    accountKey,
+    databaseName,
+    containerName,
+    cancellationToken);
+```
+
+An overload also accepts an existing `Microsoft.Azure.Cosmos.Database` handle.
+
+## Provisioning behavior
+
+- Containers are created with partition key path `/partitionKey`. The path is case-sensitive and must match the serialized document property exactly.
+- No dedicated container throughput is configured; the service uses the database/account throughput behavior.
+- Existing containers are returned by `CreateIfNotExistsAsync`; the utility does not reconcile partition keys, indexing policies, throughput, or other settings on an existing container.
+- Transient Cosmos, HTTP, and timeout failures are retried up to five times with exponential delay and jitter. Authentication, authorization, and other non-transient Cosmos errors fail immediately.
+- Cancellation stops the active SDK call and retry delays. After retries are exhausted, the final exception propagates to the caller.
+
+`ContainerInfo` is a public metadata DTO for a container name, partition-key path, and composite indexes. The current `Ensure` methods do not consume it and always use `/partitionKey` with the SDK's default indexing policy.
+
+Account keys are credentials. Store them in a secret provider and keep them out of logs and source control.
