@@ -6,8 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
 using Microsoft.Extensions.Logging;
-using Polly;
-using Polly.Retry;
+using Kevlar;
 using Soenneker.Cosmos.Container.Setup.Abstract;
 using Soenneker.Cosmos.Database.Abstract;
 using Soenneker.Extensions.Task;
@@ -21,27 +20,31 @@ public sealed class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
 {
     private readonly ILogger<CosmosContainerSetupUtil> _logger;
     private readonly ICosmosDatabaseUtil _cosmosDatabaseUtil;
-    private readonly AsyncRetryPolicy _retryPolicy;
+    private readonly Shield _retryShield;
 
     public CosmosContainerSetupUtil(ILogger<CosmosContainerSetupUtil> logger, ICosmosDatabaseUtil cosmosDatabaseUtil)
     {
         _logger = logger;
         _cosmosDatabaseUtil = cosmosDatabaseUtil;
-        _retryPolicy = Policy.Handle<CosmosException>(static exception =>
-                                 exception.StatusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests or
-                                     HttpStatusCode.InternalServerError or HttpStatusCode.ServiceUnavailable || (int)exception.StatusCode == 449)
-                             .Or<HttpRequestException>()
-                             .Or<TimeoutException>()
-                             .WaitAndRetryAsync(5,
-                                 static retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))
-                                     + TimeSpan.FromMilliseconds(RandomUtil.Next(0, 1000)),
-                                 (exception, timespan, retryCount, context) =>
-                                 {
-                                     _logger.LogWarning(exception,
-                                         "*** CosmosContainerSetupUtil *** Failed to ensure container ({containerName}), trying again in {delay}s ... count: {retryCount}",
-                                         context["containerName"], timespan.TotalSeconds, retryCount);
-                                     return Task.CompletedTask;
-                                 });
+        _retryShield = Shield.When<CosmosException>(static exception =>
+                                  exception.StatusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests or
+                                      HttpStatusCode.InternalServerError or HttpStatusCode.ServiceUnavailable || (int) exception.StatusCode == 449)
+                              .Or<HttpRequestException>()
+                              .Or<TimeoutException>()
+                              .Retry(options =>
+                              {
+                                  options.MaxRetries = 5;
+                                  options.Backoff = Backoff.Custom(static attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt))
+                                      + TimeSpan.FromMilliseconds(RandomUtil.Next(0, 1000)));
+                                  options.OnRetry = retry =>
+                                  {
+                                      _logger.LogWarning(retry.Exception,
+                                          "*** CosmosContainerSetupUtil *** Failed to ensure container ({containerName}), trying again in {delay}s ... count: {retryCount}",
+                                          retry.Context.Properties.GetOrDefault(KevlarKeys.OperationKey, string.Empty), retry.Delay.TotalSeconds,
+                                          retry.AttemptNumber + 1);
+                                      return default;
+                                  };
+                              });
     }
 
     public async ValueTask<ContainerResponse?> Ensure(string containerName, CancellationToken cancellationToken = default)
@@ -77,16 +80,17 @@ public sealed class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
 
         ContainerResponse? containerResponse = null;
 
-        var context = new Context {["containerName"] = containerName};
-        await _retryPolicy.ExecuteAsync(async (_, token) =>
+        await _retryShield.ExecuteWithContextAsync(containerName,
+                         static (name, properties) => properties.Set(KevlarKeys.OperationKey, name),
+                         async (_, context) =>
                          {
                              ThroughputProperties? containerThroughput = GetContainerThroughput(containerName);
 
-                             containerResponse = await containerBuilder.CreateIfNotExistsAsync(containerThroughput, token)
+                             containerResponse = await containerBuilder.CreateIfNotExistsAsync(containerThroughput, context.CancellationToken)
                                                                        .NoSync();
 
                              _logger.LogDebug("Ensured container ({container})", containerName);
-                         }, context, cancellationToken)
+                         }, cancellationToken)
                          .NoSync();
 
         return containerResponse;
