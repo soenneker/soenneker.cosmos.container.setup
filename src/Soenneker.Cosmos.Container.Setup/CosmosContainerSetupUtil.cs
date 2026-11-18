@@ -72,7 +72,8 @@ public sealed class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
         // These partition key paths need to match the serialized object property -exactly- (case sensitive)
         // We're going to keep these all as /partitionKey, and then identity what that value means within the C# document
 
-        _logger.LogDebug("Ensuring Cosmos container ({containerName}) exists. If not, creating...", containerName);
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("Ensuring Cosmos container ({containerName}) exists. If not, creating...", containerName);
 
         var containerBuilder = new ContainerBuilder(database, containerName, "/partitionKey");
 
@@ -89,7 +90,8 @@ public sealed class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
                              containerResponse = await containerBuilder.CreateIfNotExistsAsync(containerThroughput, context.CancellationToken)
                                                                        .NoSync();
 
-                             _logger.LogDebug("Ensured container ({container})", containerName);
+                             if (_logger.IsEnabled(LogLevel.Debug))
+                                 _logger.LogDebug("Ensured container ({container})", containerName);
                          }, cancellationToken)
                          .NoSync();
 
@@ -102,7 +104,8 @@ public sealed class CosmosContainerSetupUtil : ICosmosContainerSetupUtil
 
         ThroughputProperties? properties = null;
 
-        _logger.LogDebug("Using no throughput settings for Cosmos container ({containerName})", containerName);
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("Using no throughput settings for Cosmos container ({containerName})", containerName);
 
         return properties;
     }
